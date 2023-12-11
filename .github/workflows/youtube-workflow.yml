@@ -37,7 +37,7 @@ jobs:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           YOUTUBE_CHANNEL_ID: ${{ secrets.YOUTUBE_CHANNEL_ID }}
 
-      - name: Commit and push changes
+      - name: Commit changes
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
@@ -48,5 +48,17 @@ jobs:
             echo "No changes to commit."
           else
             git commit -m "Update latest videos"
-            git push origin HEAD:update-videos
           fi
+
+      - name: Push changes to update-videos branch
+        run: |
+          git push origin HEAD:update-videos
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v3
+        with:
+          title: "Update latest videos"
+          labels: "auto-update"
+          branch: update-videos
+          base: main
+          body: "This pull request was automatically generated to update the latest videos."
