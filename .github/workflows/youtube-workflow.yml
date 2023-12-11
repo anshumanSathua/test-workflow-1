@@ -26,7 +26,11 @@ jobs:
         id: set-branch
         run: |
           BRANCH_NAME="update-videos"
-          git checkout -b $BRANCH_NAME
+          if git show-ref --quiet "refs/heads/$BRANCH_NAME"; then
+            echo "Branch $BRANCH_NAME already exists."
+          else
+            git checkout -b $BRANCH_NAME
+          fi
           echo "::set-output name=branch_name::$BRANCH_NAME"
 
       - name: Create or update pull request
