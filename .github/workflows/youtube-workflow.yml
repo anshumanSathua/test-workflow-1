@@ -3,7 +3,7 @@ name: Update Latest Videos
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 * * * *" # Run every hour
+    - cron: "0 * * * *" # Run every day at 5:30 AM IST
 
 jobs:
   youtube-workflow:
@@ -24,19 +24,11 @@ jobs:
 
       - name: Fetch changes
         run: |
-          git fetch origin main
+          git fetch origin update-videos
 
-      - name: Check out the main branch
+      - name: Check out the update-videos branch
         run: |
-          git checkout main
-
-      - name: Merge changes from origin/main
-        run: |
-          git merge origin/main
-
-      - name: Checkout a new branch for changes
-        run: |
-          git checkout -b update-videos
+          git checkout -b update-videos origin/update-videos
 
       - name: Fetch and update videos
         run: |
@@ -56,5 +48,5 @@ jobs:
             echo "No changes to commit."
           else
             git commit -m "Update latest videos"
-            git push origin update-videos
+            git push origin HEAD:update-videos
           fi
