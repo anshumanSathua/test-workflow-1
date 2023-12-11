@@ -64,7 +64,7 @@ jobs:
 
           PR_URL=$(echo "$PR_RESPONSE" | jq -r '.html_url')
 
-          if [ -z "$PR_URL" ]; then
+          if [ "$PR_URL" == "null" ]; then
             echo "Failed to create the pull request. Exiting..."
             exit 1
           fi
@@ -73,7 +73,7 @@ jobs:
 
           # Wait for the pull request to open
           while true; do
-            PR_STATE=$(curl -s -H "Authorization: ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" "$PR_URL" | jq -r '.state')
+            PR_STATE=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" "$PR_URL" | jq -r '.state')
             
             if [ "$PR_STATE" == "open" ]; then
               break
@@ -89,7 +89,7 @@ jobs:
 
           # Automate reviews
           REVIEW_COMMENTS=$(curl -X POST \
-            -H "Authorization: ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             -d '{"body": "LGTM", "event": "APPROVE"}' \
             "https://api.github.com/repos/${{ github.repository }}/pulls/$(basename "$PR_URL")/reviews" \
@@ -99,7 +99,7 @@ jobs:
 
           # Wait for checks to pass
           while true; do
-            CHECKS_COUNT=$(curl -s -H "Authorization: ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" "$PR_URL/checks" | jq -r '.total_count')
+            CHECKS_COUNT=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" "$PR_URL/checks" | jq -r '.total_count')
             
             if [ "$CHECKS_COUNT" -eq 0 ]; then
               break
@@ -110,6 +110,6 @@ jobs:
 
           # Merge the pull request using the API
           curl -X PUT \
-            -H "Authorization: ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             "$PR_URL/merge"
