@@ -56,8 +56,10 @@ jobs:
 
       - name: Create draft pull request
         run: |
+          GH_PAT="${{ secrets.GH_PAT }}"
+
           PR_RESPONSE=$(curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
+            -H "Authorization: Bearer $GH_PAT" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository }}/pulls \
             -d '{"title": "Update latest videos", "head": "update-videos", "base": "main", "draft": true, "body": "This pull request was automatically generated to update the latest videos."}')
@@ -66,6 +68,7 @@ jobs:
 
           if [ "$PR_URL" == "null" ]; then
             echo "Failed to create the pull request. Exiting..."
+            echo "Response from GitHub API: $PR_RESPONSE"
             exit 1
           fi
 
@@ -73,15 +76,16 @@ jobs:
 
           # Wait for the pull request to open
           while true; do
-            PR_STATE=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_PAT }}" -H "Accept: application/vnd.github.v3+json" "$PR_URL" | jq -r '.state')
-            
+            PR_STATE=$(curl -s -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github.v3+json" "$PR_URL" | jq -r '.state')
+
             if [ "$PR_STATE" == "open" ]; then
               break
             elif [ "$PR_STATE" == "closed" ]; then
               echo "Pull request is closed. Exiting..."
               exit 1
             fi
-            
+
+            echo "Pull request state: $PR_STATE"
             sleep 5
           done
 
@@ -89,7 +93,7 @@ jobs:
 
           # Automate reviews
           REVIEW_COMMENTS=$(curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
+            -H "Authorization: Bearer $GH_PAT" \
             -H "Accept: application/vnd.github.v3+json" \
             -d '{"body": "LGTM", "event": "APPROVE"}' \
             "https://api.github.com/repos/${{ github.repository }}/pulls/$(basename "$PR_URL")/reviews" \
@@ -99,17 +103,18 @@ jobs:
 
           # Wait for checks to pass
           while true; do
-            CHECKS_COUNT=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_PAT }}" -H "Accept: application/vnd.github.v3+json" "$PR_URL/checks" | jq -r '.total_count')
-            
+            CHECKS_COUNT=$(curl -s -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github.v3+json" "$PR_URL/checks" | jq -r '.total_count')
+
             if [ "$CHECKS_COUNT" -eq 0 ]; then
               break
             fi
-            
+
+            echo "Checks count: $CHECKS_COUNT"
             sleep 5
           done
 
           # Merge the pull request using the API
           curl -X PUT \
-            -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
+            -H "Authorization: Bearer $GH_PAT" \
             -H "Accept: application/vnd.github.v3+json" \
             "$PR_URL/merge"
