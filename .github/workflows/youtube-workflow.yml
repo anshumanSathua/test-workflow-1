@@ -22,64 +22,15 @@ jobs:
         run: |
           npm install googleapis
 
-      - name: Fetch changes
-        run: |
-          git fetch origin update-videos
-
-      - name: Check out the update-videos branch
-        run: |
-          git checkout -b update-videos origin/update-videos
-
-      - name: Fetch and update videos
-        run: |
-          node .github/scripts/updateVideos.mjs
-        env:
-          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
-          YOUTUBE_CHANNEL_ID: ${{ secrets.YOUTUBE_CHANNEL_ID }}
-
-      - name: Commit changes
-        run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
-
-          git add .
-
-          if git diff --cached --exit-code; then
-            echo "No changes to commit."
-          else
-            git commit -m "Update latest videos"
-          fi
-
-      - name: Push changes to update-videos branch
-        run: |
-          git push origin HEAD:update-videos
-
-      - name: Close existing pull request
-        run: |
-          EXISTING_PR_NUMBER=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/${{ github.repository }}/pulls?q=update-videos+state:open" \
-            | jq -r '.[0].number')
-
-          if [ -n "$EXISTING_PR_NUMBER" ]; then
-            echo "Closing existing pull request #$EXISTING_PR_NUMBER..."
-            curl -X PATCH \
-              -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
-              -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/${{ github.repository }}/pulls/$EXISTING_PR_NUMBER" \
-              -d '{"state":"closed"}'
-          else
-            echo "No existing pull request found."
-          fi
-
-      - name: Create draft pull request
+      - name: Create or update pull request
         run: |
           GH_PAT="${{ secrets.GH_PAT }}"
+          API_URL="https://api.github.com/repos/${{ github.repository }}/pulls"
 
           PR_RESPONSE=$(curl -X POST \
             -H "Authorization: Bearer $GH_PAT" \
             -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/pulls \
+            $API_URL \
             -d '{"title": "Update latest videos", "head": "update-videos", "base": "main", "draft": true, "body": "This pull request was automatically generated to update the latest videos."}')
 
           PR_URL=$(echo "$PR_RESPONSE" | jq -r '.html_url')
@@ -95,14 +46,14 @@ jobs:
           # Wait for the pull request to open
           while true; do
             PR_STATE=$(curl -s -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github.v3+json" "$PR_URL" | jq -r '.state')
-
+            
             if [ "$PR_STATE" == "open" ]; then
               break
             elif [ "$PR_STATE" == "closed" ]; then
               echo "Pull request is closed. Exiting..."
               exit 1
             fi
-
+            
             echo "Pull request state: $PR_STATE"
             sleep 5
           done
@@ -114,7 +65,7 @@ jobs:
             -H "Authorization: Bearer $GH_PAT" \
             -H "Accept: application/vnd.github.v3+json" \
             -d '{"body": "LGTM", "event": "APPROVE"}' \
-            "https://api.github.com/repos/${{ github.repository }}/pulls/$(basename "$PR_URL")/reviews" \
+            "$API_URL/$(basename "$PR_URL")/reviews" \
             | jq -r '.html_url')
 
           echo "Review Comments: $REVIEW_COMMENTS"
@@ -122,11 +73,11 @@ jobs:
           # Wait for checks to pass
           while true; do
             CHECKS_COUNT=$(curl -s -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github.v3+json" "$PR_URL/checks" | jq -r '.total_count')
-
+            
             if [ "$CHECKS_COUNT" -eq 0 ]; then
               break
             fi
-
+            
             echo "Checks count: $CHECKS_COUNT"
             sleep 5
           done
