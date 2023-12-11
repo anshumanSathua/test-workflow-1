@@ -56,37 +56,60 @@ jobs:
 
       - name: Create draft pull request
         run: |
-          PR_URL=$(curl -X POST \
+          PR_RESPONSE=$(curl -X POST \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository }}/pulls \
-            -d '{"title": "Update latest videos", "head": "update-videos", "base": "main", "draft": true, "body": "This pull request was automatically generated to update the latest videos."}' \
-            | jq -r '.html_url')
+            -d '{"title": "Update latest videos", "head": "update-videos", "base": "main", "draft": true, "body": "This pull request was automatically generated to update the latest videos."}')
+
+          PR_URL=$(echo "$PR_RESPONSE" | jq -r '.html_url')
+
+          if [ -z "$PR_URL" ]; then
+            echo "Failed to create the pull request. Exiting..."
+            exit 1
+          fi
 
           echo "Draft Pull Request URL: $PR_URL"
 
-          # Wait for the pull request checks to complete
-          while [[ "$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" $PR_URL | jq -r '.state')" != "open" ]]; do
+          # Wait for the pull request to open
+          while true; do
+            PR_STATE=$(curl -s -H "Authorization: ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" "$PR_URL" | jq -r '.state')
+            
+            if [ "$PR_STATE" == "open" ]; then
+              break
+            elif [ "$PR_STATE" == "closed" ]; then
+              echo "Pull request is closed. Exiting..."
+              exit 1
+            fi
+            
             sleep 5
           done
 
+          echo "Pull request is open."
+
           # Automate reviews
           REVIEW_COMMENTS=$(curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Authorization: ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             -d '{"body": "LGTM", "event": "APPROVE"}' \
-            https://api.github.com/repos/${{ github.repository }}/pulls/$(basename $PR_URL)"/reviews" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/$(basename "$PR_URL")/reviews" \
             | jq -r '.html_url')
 
           echo "Review Comments: $REVIEW_COMMENTS"
 
           # Wait for checks to pass
-          while [[ "$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" $PR_URL/checks | jq -r '.total_count')" -gt 0 ]]; do
+          while true; do
+            CHECKS_COUNT=$(curl -s -H "Authorization: ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" "$PR_URL/checks" | jq -r '.total_count')
+            
+            if [ "$CHECKS_COUNT" -eq 0 ]; then
+              break
+            fi
+            
             sleep 5
           done
 
           # Merge the pull request using the API
           curl -X PUT \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Authorization: ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             "$PR_URL/merge"
