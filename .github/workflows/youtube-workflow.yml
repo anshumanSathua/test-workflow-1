@@ -3,7 +3,7 @@ name: Update Latest Videos
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 * * * *" # Run every day at 5:30 AM IST
+    - cron: "0 * * * *" # Run every hour
 
 jobs:
   youtube-workflow:
@@ -29,20 +29,24 @@ jobs:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           YOUTUBE_CHANNEL_ID: ${{ secrets.YOUTUBE_CHANNEL_ID }}
 
-      - name: Commit and push changes
+      - name: Commit changes
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
 
           git add .
 
-            
           if git diff --cached --exit-code; then
             echo "No changes to commit."
           else
             git commit -m "Update latest videos"
-            
-            git pull origin main
-            
-            git push
           fi
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v3
+        with:
+          title: "Update latest videos"
+          labels: "auto-update"
+          branch: main
+          base: main
+          body: "This pull request was automatically generated to update the latest videos."
