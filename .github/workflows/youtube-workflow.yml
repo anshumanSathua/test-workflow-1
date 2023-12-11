@@ -3,7 +3,7 @@ name: Update Latest Videos
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 * * * *" # Run every day at 5:30 AM IST
+    - cron: "0 * * * *" # Runs every hour
 
 jobs:
   youtube-workflow:
@@ -54,11 +54,39 @@ jobs:
         run: |
           git push origin HEAD:update-videos
 
-      - name: Create pull request
-        uses: peter-evans/create-pull-request@v3
-        with:
-          title: "Update latest videos"
-          labels: "auto-update"
-          branch: update-videos
-          base: main
-          body: "This pull request was automatically generated to update the latest videos."
+      - name: Create draft pull request
+        run: |
+          PR_URL=$(curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/pulls \
+            -d '{"title": "Update latest videos", "head": "update-videos", "base": "main", "draft": true, "body": "This pull request was automatically generated to update the latest videos."}' \
+            | jq -r '.html_url')
+
+          echo "Draft Pull Request URL: $PR_URL"
+
+          # Wait for the pull request checks to complete
+          while [[ "$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" $PR_URL | jq -r '.state')" != "open" ]]; do
+            sleep 5
+          done
+
+          # Automate reviews
+          REVIEW_COMMENTS=$(curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d '{"body": "LGTM", "event": "APPROVE"}' \
+            https://api.github.com/repos/${{ github.repository }}/pulls/$(basename $PR_URL)"/reviews" \
+            | jq -r '.html_url')
+
+          echo "Review Comments: $REVIEW_COMMENTS"
+
+          # Wait for checks to pass
+          while [[ "$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" $PR_URL/checks | jq -r '.total_count')" -gt 0 ]]; do
+            sleep 5
+          done
+
+          # Merge the pull request using the API
+          curl -X PUT \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "$PR_URL/merge"
