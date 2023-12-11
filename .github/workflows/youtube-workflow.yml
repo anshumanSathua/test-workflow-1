@@ -22,25 +22,21 @@ jobs:
         run: |
           npm install googleapis
 
+      - name: Set branch name
+        id: set-branch
+        run: |
+          BRANCH_NAME="update-videos"
+          git checkout -b $BRANCH_NAME
+          echo "::set-output name=branch_name::$BRANCH_NAME"
+
       - name: Create or update pull request
         run: |
           GH_PAT="${{ secrets.GH_PAT }}"
           API_URL="https://api.github.com/repos/${{ github.repository }}/pulls"
-          BRANCH_NAME="update-videos"
           PR_TITLE="Update latest videos"
 
-          # Check if a pull request with the same title and branch already exists
-          EXISTING_PR=$(curl -s -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github.v3+json" \
-            "${API_URL}?head=${{ github.actor }}:${BRANCH_NAME}" | jq -r '.[0].html_url')
+          BRANCH_NAME="${{ steps.set-branch.outputs.branch_name }}"
 
-          if [ "$EXISTING_PR" != "null" ]; then
-            echo "Closing existing pull request: $EXISTING_PR"
-            EXISTING_PR_NUMBER=$(basename "$EXISTING_PR")
-            curl -X PATCH -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github.v3+json" \
-              "${API_URL}/${EXISTING_PR_NUMBER}" -d '{"state": "closed"}'
-          fi
-
-          # Create a new pull request
           PR_RESPONSE=$(curl -X POST \
             -H "Authorization: Bearer $GH_PAT" \
             -H "Accept: application/vnd.github.v3+json" \
