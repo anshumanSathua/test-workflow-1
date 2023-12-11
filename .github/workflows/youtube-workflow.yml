@@ -57,7 +57,7 @@ jobs:
       - name: Create draft pull request
         run: |
           PR_RESPONSE=$(curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository }}/pulls \
             -d '{"title": "Update latest videos", "head": "update-videos", "base": "main", "draft": true, "body": "This pull request was automatically generated to update the latest videos."}')
@@ -73,7 +73,7 @@ jobs:
 
           # Wait for the pull request to open
           while true; do
-            PR_STATE=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" "$PR_URL" | jq -r '.state')
+            PR_STATE=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_PAT }}" -H "Accept: application/vnd.github.v3+json" "$PR_URL" | jq -r '.state')
             
             if [ "$PR_STATE" == "open" ]; then
               break
@@ -89,7 +89,7 @@ jobs:
 
           # Automate reviews
           REVIEW_COMMENTS=$(curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
             -H "Accept: application/vnd.github.v3+json" \
             -d '{"body": "LGTM", "event": "APPROVE"}' \
             "https://api.github.com/repos/${{ github.repository }}/pulls/$(basename "$PR_URL")/reviews" \
@@ -99,7 +99,7 @@ jobs:
 
           # Wait for checks to pass
           while true; do
-            CHECKS_COUNT=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github.v3+json" "$PR_URL/checks" | jq -r '.total_count')
+            CHECKS_COUNT=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_PAT }}" -H "Accept: application/vnd.github.v3+json" "$PR_URL/checks" | jq -r '.total_count')
             
             if [ "$CHECKS_COUNT" -eq 0 ]; then
               break
@@ -110,6 +110,6 @@ jobs:
 
           # Merge the pull request using the API
           curl -X PUT \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.GH_PAT }}" \
             -H "Accept: application/vnd.github.v3+json" \
             "$PR_URL/merge"
