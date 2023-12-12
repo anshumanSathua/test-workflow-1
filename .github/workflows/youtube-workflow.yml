@@ -18,6 +18,11 @@ jobs:
         with:
           node-version: "16"
 
+      - name: Set Git identity
+        run: |
+          git config --global user.email "actions@example.com"
+          git config --global user.name "GitHub Actions"
+
       - name: Install dependencies
         run: |
           npm install googleapis
@@ -28,28 +33,6 @@ jobs:
           BRANCH_NAME="update-videos"
           echo "::set-output name=branch_name::$BRANCH_NAME"
 
-      - name: Create or update branch
-        run: |
-          GH_PAT="${{ secrets.GH_PAT }}"
-          BRANCH_NAME="${{ steps.set-branch.outputs.branch_name }}"
-
-          git checkout -B $BRANCH_NAME
-          git push --force origin $BRANCH_NAME
-
-      - name: Perform changes and commit
-        run: |
-          GH_PAT="${{ secrets.GH_PAT }}"
-          BRANCH_NAME="${{ steps.set-branch.outputs.branch_name }}"
-
-          git fetch origin $BRANCH_NAME
-          git rebase origin/$BRANCH_NAME
-
-          # Perform your changes
-          touch new_file.txt
-          git add .
-          git commit -m "Update latest videos"
-          git push origin $BRANCH_NAME
-
       - name: Create or update pull request
         run: |
           GH_PAT="${{ secrets.GH_PAT }}"
@@ -57,6 +40,22 @@ jobs:
           PR_TITLE="Update latest videos"
 
           BRANCH_NAME="${{ steps.set-branch.outputs.branch_name }}"
+
+          # Create or update branch
+          BRANCH_RESPONSE=$(curl -X POST \
+            -H "Authorization: Bearer $GH_PAT" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/git/refs" \
+            -d '{"ref": "refs/heads/'"$BRANCH_NAME"'", "sha": "'$(git rev-parse HEAD)'" }')
+
+          BRANCH_SHA=$(echo "$BRANCH_RESPONSE" | jq -r '.object.sha')
+
+          # Create a new commit on the branch
+          git checkout -b $BRANCH_NAME
+          touch new_file.txt  # Create a new file or modify existing files
+          git add .
+          git commit -m "Update latest videos"
+          git push origin $BRANCH_NAME
 
           # Create pull request
           PR_RESPONSE=$(curl -X POST \
