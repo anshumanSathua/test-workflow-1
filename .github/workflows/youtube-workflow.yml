@@ -28,12 +28,19 @@ jobs:
           BRANCH_NAME="update-videos"
           echo "::set-output name=branch_name::$BRANCH_NAME"
 
+      - name: Create or update branch
+        run: |
+          GH_PAT="${{ secrets.GH_PAT }}"
+          BRANCH_NAME="${{ steps.set-branch.outputs.branch_name }}"
+
+          git checkout -B $BRANCH_NAME
+          git push origin $BRANCH_NAME
+
       - name: Perform changes and commit
         run: |
           GH_PAT="${{ secrets.GH_PAT }}"
           BRANCH_NAME="${{ steps.set-branch.outputs.branch_name }}"
 
-          git checkout $BRANCH_NAME
           git pull origin $BRANCH_NAME --ff-only  # Ensure the branch is up-to-date
           touch new_file.txt  # Create or modify files
           git add .
