@@ -34,21 +34,29 @@ jobs:
           BRANCH_NAME="${{ steps.set-branch.outputs.branch_name }}"
 
           git checkout -B $BRANCH_NAME
-          git push origin $BRANCH_NAME
+          git push --force origin $BRANCH_NAME
 
       - name: Perform changes and commit
         run: |
           GH_PAT="${{ secrets.GH_PAT }}"
           BRANCH_NAME="${{ steps.set-branch.outputs.branch_name }}"
 
-          git pull origin $BRANCH_NAME --ff-only  # Ensure the branch is up-to-date
-          touch new_file.txt  # Create or modify files
+          git fetch origin $BRANCH_NAME
+          git rebase origin/$BRANCH_NAME
+
+          # Perform your changes
+          touch new_file.txt
           git add .
           git commit -m "Update latest videos"
           git push origin $BRANCH_NAME
 
+      - name: Create or update pull request
+        run: |
+          GH_PAT="${{ secrets.GH_PAT }}"
           API_URL="https://api.github.com/repos/${{ github.repository }}/pulls"
           PR_TITLE="Update latest videos"
+
+          BRANCH_NAME="${{ steps.set-branch.outputs.branch_name }}"
 
           # Create pull request
           PR_RESPONSE=$(curl -X POST \
