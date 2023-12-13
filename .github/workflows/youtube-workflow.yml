@@ -50,7 +50,8 @@ jobs:
             git push origin $BRANCH_NAME
           else
             git checkout $BRANCH_NAME
-            git pull origin $BRANCH_NAME
+            git pull origin $BRANCH_NAME --rebase
+            git push origin $BRANCH_NAME
           fi
 
           # Create pull request
