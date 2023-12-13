@@ -42,19 +42,13 @@ jobs:
           BRANCH_NAME="${{ steps.set-branch.outputs.branch_name }}"
 
           # Check if the branch exists, if not, create it
-          BRANCH_EXISTENCE=$(curl -s -H "Authorization: Bearer $GH_PAT" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/${{ github.repository }}/git/refs/heads/$BRANCH_NAME")
-
-          if [ "$BRANCH_EXISTENCE" == "null" ]; then
-            # Create a new branch
+          if ! git show-ref --quiet refs/heads/$BRANCH_NAME; then
             git checkout -b $BRANCH_NAME
             touch new_file.txt  # Create a new file or modify existing files
             git add .
             git commit -m "Update latest videos"
             git push origin $BRANCH_NAME
           else
-            # Switch to existing branch
             git checkout $BRANCH_NAME
             git pull origin $BRANCH_NAME
           fi
