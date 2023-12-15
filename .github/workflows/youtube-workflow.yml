@@ -29,7 +29,7 @@ jobs:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           YOUTUBE_CHANNEL_ID: ${{ secrets.YOUTUBE_CHANNEL_ID }}
 
-      - name: Bypass branch protection
+      - name: Create pull request
         run: |
           BRANCH_NAME="update-videos-$(date +%s)"
           git checkout -b $BRANCH_NAME
@@ -37,17 +37,20 @@ jobs:
           git config --global user.name "GitHub Actions"
           git add .
           git commit -m "Update latest videos"
+          git push origin $BRANCH_NAME
 
-          # Force-push to bypass branch protection
-          git push --force origin $BRANCH_NAME:main
-
-          # Clean up local branch
-          git checkout main
-          git branch -D $BRANCH_NAME
-
-      - name: Re-enable branch protection
-        run: |
-          curl -X PUT -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          PR_RESPONSE=$(curl -s -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            -d '{"required_status_checks": null, "enforce_admins": null, "required_pull_request_reviews": null, "restrictions": null}' \
-            https://api.github.com/repos/${{ github.repository }}/branches/main/protection
+            -d '{"title": "Update latest videos", "head": "'"$BRANCH_NAME"'", "base": "main"}' \
+            https://api.github.com/repos/${{ github.repository }}/pulls)
+
+          PR_URL=$(echo $PR_RESPONSE | jq -r '.html_url')
+
+          # Wait for the pull request to be created
+          sleep 10s
+
+          # Merge the pull request
+          curl -s -X PUT -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d '{"merge_method": "squash"}' \
+            $PR_URL/merge
