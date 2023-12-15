@@ -29,12 +29,8 @@ jobs:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           YOUTUBE_CHANNEL_ID: ${{ secrets.YOUTUBE_CHANNEL_ID }}
 
-      - name: Commit and push changes
+      - name: Disable branch protection temporarily
         run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
-
-          # Disable branch protection temporarily
           BRANCH_PROTECTION_STATUS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository }}/branches/main/protection \
@@ -46,22 +42,28 @@ jobs:
               https://api.github.com/repos/${{ github.repository }}/branches/main/protection
           fi
 
+      - name: Commit changes
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+
           git add .
 
           if git diff --cached --exit-code; then
             echo "No changes to commit."
           else
             git commit -m "Update latest videos"
-            
-            git pull origin main
-            
-            git push
-
-            # Re-enable branch protection
-            if [ "$BRANCH_PROTECTION_STATUS" = "true" ]; then
-              curl -X PUT -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-                -H "Accept: application/vnd.github.v3+json" \
-                -d '{"required_status_checks": null, "enforce_admins": null, "required_pull_request_reviews": null, "restrictions": null}' \
-                https://api.github.com/repos/${{ github.repository }}/branches/main/protection
-            fi
           fi
+
+      - name: Push changes
+        run: |
+          git pull origin main
+          git push
+
+      - name: Re-enable branch protection
+        if: ${{ env.BRANCH_PROTECTION_STATUS == 'true' }}
+        run: |
+          curl -X PUT -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d '{"required_status_checks": null, "enforce_admins": null, "required_pull_request_reviews": null, "restrictions": null}' \
+            https://api.github.com/repos/${{ github.repository }}/branches/main/protection
