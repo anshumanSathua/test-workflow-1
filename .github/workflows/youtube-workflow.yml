@@ -54,3 +54,6 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             -d '{"merge_method": "squash"}' \
             $PR_URL/merge
+
+          # Delete the temporary branch
+          git push origin --delete $BRANCH_NAME
