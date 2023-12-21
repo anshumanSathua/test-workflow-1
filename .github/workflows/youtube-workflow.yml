@@ -29,38 +29,28 @@ jobs:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           YOUTUBE_CHANNEL_ID: ${{ secrets.YOUTUBE_CHANNEL_ID }}
 
-      - name: Disable branch protection temporarily
+      - name: Create pull request
         run: |
-          BRANCH_PROTECTION_STATUS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/branches/main/protection \
-            | jq -r '.enabled')
-
-          if [ "$BRANCH_PROTECTION_STATUS" = "true" ]; then
-            curl -X DELETE -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3+json" \
-              https://api.github.com/repos/${{ github.repository }}/branches/main/protection
-          fi
-
-      - name: Commit and push changes
-        run: |
+          BRANCH_NAME="update-videos-$(date +%s)"
+          git checkout -b $BRANCH_NAME
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
-
           git add .
+          git commit -m "Update latest videos"
+          git push origin $BRANCH_NAME
 
-          if git diff --cached --exit-code; then
-            echo "No changes to commit."
-          else
-            git commit -m "Update latest videos"
-            git pull origin main
-            git push
-          fi
-
-      - name: Re-enable branch protection
-        if: ${{ env.BRANCH_PROTECTION_STATUS == 'true' }}
-        run: |
-          curl -X PUT -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          PR_RESPONSE=$(curl -s -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            -d '{"required_status_checks": null, "enforce_admins": null, "required_pull_request_reviews": null, "restrictions": null}' \
-            https://api.github.com/repos/${{ github.repository }}/branches/main/protection
+            -d '{"title": "Update latest videos", "head": "'"$BRANCH_NAME"'", "base": "main"}' \
+            https://api.github.com/repos/${{ github.repository }}/pulls)
+
+          PR_URL=$(echo $PR_RESPONSE | jq -r '.html_url')
+
+          # Wait for the pull request to be created
+          sleep 10s
+
+          # Merge the pull request using GitHub API
+          curl -s -X PUT -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d '{"merge_method": "squash"}' \
+            $PR_URL/merge
