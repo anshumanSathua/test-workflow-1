@@ -42,7 +42,7 @@ jobs:
           git commit -m "Update latest videos"
 
       - name: Push changes to the new branch
-        run: git push --set-upstream origin ${{ github.sha }}
+        run: git push --set-upstream origin $BRANCH_NAME
 
       - name: Merge changes into main
         run: |
