@@ -42,7 +42,9 @@ jobs:
           git commit -m "Update latest videos"
 
       - name: Push changes to the new branch
-        run: git push -u origin $BRANCH_NAME
+        run: |
+          git push origin $BRANCH_NAME
+          git branch --set-upstream-to=origin/$BRANCH_NAME $BRANCH_NAME
 
       - name: Merge changes into main
         run: |
