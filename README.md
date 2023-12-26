@@ -35,7 +35,7 @@ Join me on YouTube, where I pour years of gathered wisdom into empowering you. T
 
 Check out my latest videos:
 
-Version: X
+Version:
 
 <!-- latest-videos -->
 <!-- latest-videos-end -->
