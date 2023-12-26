@@ -72,13 +72,15 @@ jobs:
       - name: Set Version
         run: |
           version=$(( $(grep -Eo '(?<=Version: )\d+' README.md) + 1 ))
-          sed -i 's/Version: .*/Version: '"$version"'/g' README.md
+          echo "New version: $version"
 
       - name: Commit Changes
         run: |
           git config --local user.email "${{ secrets.GIT_USER_EMAIL }}"
           git config --local user.name "${{ secrets.GIT_USER_NAME }}"
+          git status
           git add README.md
+          git status
           git commit -m "Update version number [skip ci]"
 
       - name: Push Changes
