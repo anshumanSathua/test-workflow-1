@@ -58,29 +58,31 @@ name: Update Latest Videos
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Run every hour
-  workflow_dispatch:  # Manually trigger the workflow
+    - cron: "0 * * * *" # Run every hour
+  workflow_dispatch: # Manually trigger the workflow
 
 jobs:
   update-readme:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v2
+      - name: Checkout Repository
+        uses: actions/checkout@v2
 
-    - name: Set Version
-      run: echo "Version: $(( $(grep -oP '(?<=Version: )\d+' README.md) + 1 ))" > README.md
+      - name: Set Version
+        run: |
+          version=$(($(grep -oP '(?<=Version: )\d+' README.md) + 1))
+          sed -i 's/Version: .*/Version: '"$version"'/g' README.md
 
-    - name: Commit Changes
-      run: |
-        git config --local user.email "${{ secrets.GIT_USER_EMAIL }}"
-        git config --local user.name "${{ secrets.GIT_USER_NAME }}"
-        git add README.md
-        git commit -m "Update version number [skip ci]"
+      - name: Commit Changes
+        run: |
+          git config --local user.email "${{ secrets.GIT_USER_EMAIL }}"
+          git config --local user.name "${{ secrets.GIT_USER_NAME }}"
+          git add README.md
+          git commit -m "Update version number [skip ci]"
 
-    - name: Push Changes
-      run: |
-        git push origin main
-      env:
-        PAT: ${{ secrets.GH_PAT }}
+      - name: Push Changes
+        run: |
+          git push origin main
+        env:
+          PAT: ${{ secrets.GH_PAT }}
