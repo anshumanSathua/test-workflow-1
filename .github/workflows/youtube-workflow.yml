@@ -54,7 +54,7 @@
 #           git merge --no-ff $BRANCH_NAME -m "Merge $BRANCH_NAME into main"
 #           git push origin main
 
-name: Update Version Number
+name: Update Latest Videos
 
 on:
   schedule:
