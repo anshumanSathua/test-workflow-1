@@ -73,6 +73,11 @@ jobs:
         run: |
           version=$(( $(grep -oE '(?<=Version: )\d+' README.md) + 1 ))
           echo "New version: $version"
+          echo "VERSION=$version" >> $GITHUB_ENV
+
+      - name: Update README
+        run: |
+          sed -i "s/Version: [0-9]\+/Version: ${{ env.VERSION }}/" README.md
 
       - name: Commit Changes
         run: |
@@ -81,7 +86,7 @@ jobs:
           git status
           git add README.md
           git status
-          git commit -m "Update version number [skip ci]"
+          git commit -m "Update version number to ${{ env.VERSION }} [skip ci]"
 
       - name: Push Changes
         run: |
