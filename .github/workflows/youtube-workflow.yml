@@ -83,4 +83,4 @@ jobs:
       run: |
         git push origin main
       env:
-        PAT: ${{ secrets.PAT }}
+        PAT: ${{ secrets.GH_PAT }}
