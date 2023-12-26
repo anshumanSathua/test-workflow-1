@@ -1,55 +1,86 @@
-name: Update Latest Videos
+# name: Update Latest Videos
+
+# on:
+#   workflow_dispatch:
+#   schedule:
+#     - cron: "0 * * * *"
+
+# jobs:
+#   youtube-workflow:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v3
+
+#       - name: Set up Git user identity
+#         run: |
+#           git config --global user.email "actions@github.com"
+#           git config --global user.name "GitHub Actions"
+
+#       - name: Set up Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: "16"
+
+#       - name: Install dependencies
+#         run: |
+#           npm install googleapis
+
+#       - name: Fetch and update videos
+#         run: |
+#           node .github/scripts/updateVideos.mjs
+#         env:
+#           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+#           YOUTUBE_CHANNEL_ID: ${{ secrets.YOUTUBE_CHANNEL_ID }}
+
+#       - name: Create a new branch
+#         run: |
+#           BRANCH_NAME="update-videos-$(date +%s)"
+#           git checkout -b $BRANCH_NAME
+#           git add .
+#           git commit -m "Update latest videos"
+
+#       - name: Push changes to the new branch
+#         run: git push origin $BRANCH_NAME
+
+#       - name: Set upstream branch
+#         run: git branch --set-upstream-to=origin/$BRANCH_NAME $BRANCH_NAME
+
+#       - name: Merge changes into main
+#         run: |
+#           git checkout main
+#           git pull origin main
+#           git merge --no-ff $BRANCH_NAME -m "Merge $BRANCH_NAME into main"
+#           git push origin main
+
+name: Update Version Number
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: "0 * * * *"
+    - cron: '0 * * * *'  # Run every hour
+  workflow_dispatch:  # Manually trigger the workflow
 
 jobs:
-  youtube-workflow:
+  update-readme:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout Repository
+      uses: actions/checkout@v2
 
-      - name: Set up Git user identity
-        run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
+    - name: Set Version
+      run: echo "Version: $(( $(grep -oP '(?<=Version: )\d+' README.md) + 1 ))" > README.md
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "16"
+    - name: Commit Changes
+      run: |
+        git config --local user.email "${{ secrets.GIT_USER_EMAIL }}"
+        git config --local user.name "${{ secrets.GIT_USER_NAME }}"
+        git add README.md
+        git commit -m "Update version number [skip ci]"
 
-      - name: Install dependencies
-        run: |
-          npm install googleapis
-
-      - name: Fetch and update videos
-        run: |
-          node .github/scripts/updateVideos.mjs
-        env:
-          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
-          YOUTUBE_CHANNEL_ID: ${{ secrets.YOUTUBE_CHANNEL_ID }}
-
-      - name: Create a new branch
-        run: |
-          BRANCH_NAME="update-videos-$(date +%s)"
-          git checkout -b $BRANCH_NAME
-          git add .
-          git commit -m "Update latest videos"
-
-      - name: Push changes to the new branch
-        run: git push origin $BRANCH_NAME
-
-      - name: Set upstream branch
-        run: git branch --set-upstream-to=origin/$BRANCH_NAME $BRANCH_NAME
-
-      - name: Merge changes into main
-        run: |
-          git checkout main
-          git pull origin main
-          git merge --no-ff $BRANCH_NAME -m "Merge $BRANCH_NAME into main"
-          git push origin main
+    - name: Push Changes
+      run: |
+        git push origin main
+      env:
+        PAT: ${{ secrets.PAT }}
