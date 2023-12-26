@@ -71,7 +71,7 @@ jobs:
 
       - name: Set Version
         run: |
-          version=$(( $(grep -oP '(?<=Version: )\d+' README.md) + 1 ))
+          version=$(( $(grep -oE '(?<=Version: )\d+' README.md) + 1 ))
           echo "New version: $version"
 
       - name: Commit Changes
