@@ -71,7 +71,7 @@ jobs:
 
       - name: Set Version
         run: |
-          version=$(($(grep -oP '(?<=Version: )\d+' README.md) + 1))
+          version=$(( $(grep -Eo '(?<=Version: )\d+' README.md) + 1 ))
           sed -i 's/Version: .*/Version: '"$version"'/g' README.md
 
       - name: Commit Changes
