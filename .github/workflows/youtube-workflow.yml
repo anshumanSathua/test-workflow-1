@@ -57,8 +57,8 @@
 name: Update README with Date and Time
 
 on:
-  schedule:
-    - cron: "0 * * * *" # Run every hour
+  # schedule:
+  #   - cron: "0 * * * *" # Run every hour
   workflow_dispatch: # Manually trigger the workflow
 
 jobs:
