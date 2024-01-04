@@ -70,6 +70,7 @@ jobs:
       - name: Update README
         run: |
           echo "Last updated at $(date -u)" >> README.md
+          cat README.md  # Add this line to print the contents of README.md
 
       - name: Commit Changes
         run: |
