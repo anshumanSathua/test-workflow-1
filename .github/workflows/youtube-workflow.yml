@@ -78,4 +78,6 @@ jobs:
           git add README.md
           git commit -m "Update README with current date and time [skip ci]"
           git pull --rebase
+          git fetch origin main
+          git reset --hard origin/main
           git push --force-with-lease https://${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git HEAD:refs/heads/main
