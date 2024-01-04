@@ -69,8 +69,7 @@ jobs:
 
       - name: Update README
         run: |
-          echo "Last updated at $(date -u)" >> README.md
-          cat README.md  # Add this line to print the contents of README.md
+          echo "Last updated at $(date -u)" > README.md
 
       - name: Commit Changes
         run: |
@@ -79,6 +78,4 @@ jobs:
           git add README.md
           git commit -m "Update README with current date and time [skip ci]"
           git pull --rebase
-          git fetch origin main
-          git reset --hard origin/main
-          git push --force-with-lease https://${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git HEAD:refs/heads/main
+          git push https://${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git HEAD:refs/heads/main
