@@ -57,7 +57,9 @@
 name: Update README with Date and Time
 
 on:
-  workflow_dispatch: # Manually trigger the workflow
+  schedule:
+    - cron: "0 0 * * *" # Runs at midnight every day
+  workflow_dispatch: # Allows manual triggering of the workflow
 
 jobs:
   update-readme:
@@ -71,17 +73,17 @@ jobs:
         run: |
           echo "Last updated at $(date -u)" > README.md
 
-      - name: Pull Latest Changes
-        run: |
-          git pull origin main --ff-only
-
-      - name: Commit Changes
+      - name: Configure Git
         run: |
           git config --local user.email "${{ secrets.GIT_USER_EMAIL }}"
           git config --local user.name "${{ secrets.GIT_USER_NAME }}"
+
+      - name: Commit Changes
+        run: |
           git add README.md
-          git commit -m "Update README with current date and time [skip ci]"
+          git commit -m "Update README with current date and time [skip ci]" || echo "No changes to commit"
 
       - name: Push Changes
         run: |
-          git push "https://${{ secrets.GIT_USER_NAME }}:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git" HEAD:main
+          git pull --rebase
+          git push
