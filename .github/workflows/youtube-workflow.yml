@@ -86,6 +86,6 @@ jobs:
       - name: Push Changes
         run: |
           git pull --rebase
-          git push "https://${{ secrets.ADMIN_GH_PAT }}@github.com/${{ secrets.GIT_USER_NAME }}/your-repo-name.git" main
+          git push "https://${{ secrets.ADMIN_GH_PAT }}@github.com/${{ secrets.GIT_USER_NAME }}/test-workflow-1.git" main
         env:
           ADMIN_GH_PAT: ${{ secrets.ADMIN_GH_PAT }}
