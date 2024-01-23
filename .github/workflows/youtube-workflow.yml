@@ -69,6 +69,9 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
+      - name: release-it Action
+        uses: JoshuaKGoldberg/release-it-action@v0.2.2
+
       - name: Update README
         run: |
           echo "Last updated at $(date -u)" > README.md
